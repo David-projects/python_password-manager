@@ -2,6 +2,7 @@ from tkinter import *
 from tkinter import messagebox
 import random
 import pyperclip
+import json
 
 FONT = ("Courier", 8, "bold")
 
@@ -43,16 +44,45 @@ def save_password():
     if not is_ok:
         return
 
-    data = f"{website} | {user} | {password}\n"
-    fd = open("data.txt", "a")
-    fd.write(data)
-    fd.close()
+    new_data = {
+        website: {
+            "email": user,
+            "password": password
+        }
+    }
 
-    website_input.delete(0, END)
-    user_input.delete(0, END)
-    user_input.insert(0, "test@gmail.com")
-    password_input.delete(0, END)
+    try:
+        with open("data.json", "r") as fd:
+            data = json.load(fd)
+    except FileNotFoundError:
+        with open("data.json", "w") as fd:
+            json.dump(new_data, fd, indent=4)
+    else:
+        data.update(new_data)
+        with open("data.json", "w") as fd:
+            json.dump(data, fd, indent=4)
+    finally:
+        website_input.delete(0, END)
+        user_input.delete(0, END)
+        user_input.insert(0, "test@gmail.com")
+        password_input.delete(0, END)
 
+
+def search():
+    search_text = website_input.get()
+    try:
+        if len(search_text) == 0:
+            messagebox.showwarning(title="Error", message="Please type something")
+            return
+
+        with open("data.json") as fd:
+            data = json.load(fd)
+    except FileNotFoundError:
+        messagebox.showwarning(title="Error", message="No item found")
+    else:
+        if search_text in data:
+            item = data[search_text]
+            messagebox.showinfo(title="Password", message=f"Email: {item['email']}\nPassword: {item['password']}")
 
 # ---------------------------- UI SETUP ------------------------------- #
 
@@ -69,8 +99,10 @@ canvas.grid(column=2, row=1)
 website_label = Label(text="Website:", font=FONT)
 website_label.grid(column=1, row=2)
 website_input = Entry(width=42)
-website_input.grid(column=2, row=2, columnspan=2)
+website_input.grid(column=2, row=2)
 website_input.focus()
+website_Button = Button(text="Search", command=search, font=FONT)
+website_Button.grid(column=3, row=2)
 
 user_label = Label(text="Email/Username:", font=FONT)
 user_label.grid(column=1, row=3)
